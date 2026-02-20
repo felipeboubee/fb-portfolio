@@ -58,7 +58,7 @@ export default function Home() {
             letterSpacing: "0.02em",
           }}
         >
-          Electrical Engineering &amp; Embedded Systems
+          Electronic Engineering
         </p>
 
         <div
