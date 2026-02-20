@@ -13,6 +13,7 @@ const EEMindMap = () => {
     return saved ? JSON.parse(saved) : {};
   });
   const svgRef = useRef(null);
+  const prevSelectedNode = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -377,8 +378,14 @@ const EEMindMap = () => {
     return Math.round((completed / totalItems) * 100);
   };
 
-  const InfoPanel = ({ domain }) => (
-    <div className="info-panel">
+  const InfoPanel = ({ domain }) => {
+    const shouldAnimate = prevSelectedNode.current === null;
+    useEffect(() => {
+      prevSelectedNode.current = domain.id;
+    }, [domain.id]);
+    
+    return (
+      <div className={`info-panel ${shouldAnimate ? 'animate-slide' : ''}`}>
       <div className="info-header">
         <div>
           <h2>{domain.title}</h2>
@@ -391,7 +398,7 @@ const EEMindMap = () => {
             </span>
           </div>
         </div>
-        <button onClick={() => setSelectedNode(null)} className="close-btn">×</button>
+        <button onClick={() => { setSelectedNode(null); prevSelectedNode.current = null; }} className="close-btn">×</button>
       </div>
 
       <p className="info-description">{domain.description}</p>
@@ -475,7 +482,8 @@ const EEMindMap = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const Dashboard = () => {
     return (
@@ -883,9 +891,12 @@ const EEMindMap = () => {
           border-left: 1px solid #333;
           padding: 32px;
           overflow-y: auto;
-          animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           box-shadow: -10px 0 40px rgba(0,0,0,0.5);
           z-index: 100;
+        }
+        
+        .info-panel.animate-slide {
+          animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         @keyframes slideIn {
