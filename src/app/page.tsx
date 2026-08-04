@@ -196,11 +196,6 @@ export default function Home() {
               href: "/projects",
             },
             {
-              title: "EE Mind Map",
-              desc: "An interactive map of electrical engineering domains and skills.",
-              href: "/ee-mindmap",
-            },
-            {
               title: "About",
               desc: "Learn more about my background and interests.",
               href: "/about",

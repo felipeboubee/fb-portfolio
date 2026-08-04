@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllProjects } from "@/data/projects";
+import { formatProjectDate, getAllProjects } from "@/data/projects";
 
 export default function ProjectsPage() {
   const projects = getAllProjects();
@@ -96,11 +96,7 @@ export default function ProjectsPage() {
                     letterSpacing: "0.04em",
                   }}
                 >
-                  {new Date(project.date).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {formatProjectDate(project.date)}
                 </time>
               </div>
             </Link>

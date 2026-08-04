@@ -1,4 +1,8 @@
-import { getAllProjects, getProjectBySlug } from "@/data/projects";
+import {
+  formatProjectDate,
+  getAllProjects,
+  getProjectBySlug,
+} from "@/data/projects";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -60,7 +64,7 @@ export default async function ProjectDetail({
             marginBottom: "2rem",
           }}
         >
-          {new Date(project.date).toLocaleDateString("en-US", {
+          {formatProjectDate(project.date, {
             year: "numeric",
             month: "long",
             day: "numeric",
@@ -167,6 +171,8 @@ export default async function ProjectDetail({
                 paddingLeft: "1.5rem",
                 color: "var(--foreground-muted)",
                 lineHeight: 2,
+                // Tailwind's preflight resets list-style on ul, so set it back
+                listStyleType: "disc",
               }}
             >
               {project.materials.map((m, i) => (
@@ -228,7 +234,10 @@ export default async function ProjectDetail({
                       background: "var(--background-secondary)",
                       borderRadius: 6,
                       backgroundImage: `url(${step.image})`,
-                      backgroundSize: "cover",
+                      // contain, not cover: figures and schematics lose their
+                      // meaning when the edges get cropped away
+                      backgroundSize: "contain",
+                      backgroundRepeat: "no-repeat",
                       backgroundPosition: "center",
                       border: "1px solid var(--border)",
                     }}
@@ -268,7 +277,8 @@ export default async function ProjectDetail({
                     background: "var(--background-secondary)",
                     borderRadius: 6,
                     backgroundImage: `url(${img})`,
-                    backgroundSize: "cover",
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
                     backgroundPosition: "center",
                     border: "1px solid var(--border)",
                   }}
