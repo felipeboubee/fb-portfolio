@@ -2,12 +2,152 @@ import {
   formatProjectDate,
   getAllProjects,
   getProjectBySlug,
+  type ProjectSection,
 } from "@/data/projects";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import {
+  CategoryTag,
+  Figure,
+  StackChips,
+  StatusBadge,
+  ThumbnailPlaceholder,
+} from "@/components/ProjectMeta";
 
 export function generateStaticParams() {
   return getAllProjects().map((p) => ({ slug: p.slug }));
+}
+
+const headingStyle: React.CSSProperties = {
+  fontSize: "1.2rem",
+  fontWeight: 600,
+  marginBottom: "1rem",
+  letterSpacing: "0.02em",
+  color: "var(--accent)",
+};
+
+const proseStyle: React.CSSProperties = {
+  fontSize: "1rem",
+  lineHeight: 1.8,
+  color: "var(--foreground-muted)",
+};
+
+function SectionTable({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    // Wide tables scroll inside their own container rather than pushing the page
+    <div style={{ overflowX: "auto", margin: "1.25rem 0" }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: "0.875rem",
+          minWidth: 480,
+        }}
+      >
+        <thead>
+          <tr>
+            {headers.map((h) => (
+              <th
+                key={h}
+                style={{
+                  textAlign: "left",
+                  padding: "0.6rem 0.8rem",
+                  borderBottom: "1px solid var(--accent)",
+                  color: "var(--foreground)",
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                  letterSpacing: "0.04em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>
+              {row.map((cell, j) => (
+                <td
+                  key={j}
+                  style={{
+                    padding: "0.6rem 0.8rem",
+                    borderBottom: "1px solid var(--border)",
+                    color: "var(--foreground-muted)",
+                    lineHeight: 1.6,
+                    fontFamily:
+                      j === 0
+                        ? "var(--font-geist-mono), monospace"
+                        : undefined,
+                  }}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SectionBlock({ section }: { section: ProjectSection }) {
+  return (
+    <div style={{ marginBottom: "2.25rem" }}>
+      <h3
+        style={{
+          fontSize: "1rem",
+          fontWeight: 600,
+          marginBottom: "0.65rem",
+          color: "var(--foreground)",
+          letterSpacing: "0.01em",
+        }}
+      >
+        {section.title}
+      </h3>
+      {section.body && (
+        <p style={{ ...proseStyle, fontSize: "0.95rem" }}>{section.body}</p>
+      )}
+      {section.bullets && (
+        <ul
+          style={{
+            paddingLeft: "1.5rem",
+            marginTop: section.body ? "0.85rem" : 0,
+            color: "var(--foreground-muted)",
+            fontSize: "0.95rem",
+            lineHeight: 1.8,
+            // Tailwind's preflight resets list-style on ul, so set it back
+            listStyleType: "disc",
+          }}
+        >
+          {section.bullets.map((b, i) => (
+            <li key={i} style={{ marginBottom: "0.4rem" }}>
+              {b}
+            </li>
+          ))}
+        </ul>
+      )}
+      {section.table && (
+        <SectionTable
+          headers={section.table.headers}
+          rows={section.table.rows}
+        />
+      )}
+      {section.image && (
+        <div style={{ marginTop: "1rem" }}>
+          <Figure image={section.image} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default async function ProjectDetail({
@@ -19,16 +159,17 @@ export default async function ProjectDetail({
   const project = getProjectBySlug(slug);
   if (!project) notFound();
 
+  const isBuilt = project.status === "complete";
+
   return (
     <div style={{ paddingTop: 64 }}>
       <article
         style={{
           maxWidth: 800,
           margin: "0 auto",
-          padding: "5rem 2rem",
+          padding: "4rem 2rem 5rem",
         }}
       >
-        {/* Back link */}
         <Link
           href="/projects"
           style={{
@@ -37,72 +178,131 @@ export default async function ProjectDetail({
             letterSpacing: "0.05em",
             marginBottom: "2rem",
             display: "inline-block",
-            transition: "color 0.2s",
           }}
         >
           ← Back to Projects
         </Link>
 
-        {/* Title & date */}
+        {/* Category, status, date */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem",
+            flexWrap: "wrap",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <CategoryTag category={project.category} />
+          <StatusBadge status={project.status} />
+          {project.date && (
+            <time
+              style={{
+                fontSize: "0.8rem",
+                color: "var(--grey)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {formatProjectDate(project.date, {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </time>
+          )}
+        </div>
+
         <h1
           style={{
             fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
             fontWeight: 700,
             letterSpacing: "-0.02em",
-            marginBottom: "0.75rem",
+            marginBottom: "1rem",
             color: "var(--foreground)",
+            lineHeight: 1.15,
           }}
         >
           {project.title}
         </h1>
-        <time
+
+        <p
           style={{
-            fontSize: "0.85rem",
+            fontSize: "1.1rem",
+            lineHeight: 1.7,
             color: "var(--foreground-muted)",
-            letterSpacing: "0.04em",
-            display: "block",
-            marginBottom: "2rem",
+            marginBottom: "1.75rem",
           }}
         >
-          {formatProjectDate(project.date, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </time>
+          {project.tagline}
+        </p>
 
-        {/* Hero image */}
-        <div
-          style={{
-            aspectRatio: "16/9",
-            background: "var(--background-secondary)",
-            borderRadius: 8,
-            marginBottom: "3rem",
-            backgroundImage: `url(${project.thumbnail})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            border: "1px solid var(--border)",
-          }}
-        />
+        <div style={{ marginBottom: "2.5rem" }}>
+          <StackChips stack={project.stack} />
+        </div>
 
-        {/* Relevant Links */}
-        {project.links.length > 0 && (
-          <section style={{ marginBottom: "3rem" }}>
-            <h2
+        {/* Hero */}
+        <div style={{ marginBottom: "2.5rem" }}>
+          {project.thumbnail ? (
+            <Figure
+              image={{ src: project.thumbnail, alt: project.thumbnailAlt }}
+              aspectRatio="16/9"
+            />
+          ) : (
+            <div
               style={{
-                fontSize: "1.2rem",
-                fontWeight: 600,
-                marginBottom: "1rem",
-                letterSpacing: "0.02em",
-                color: "var(--accent)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                overflow: "hidden",
               }}
             >
-              Relevant Links
-            </h2>
+              <ThumbnailPlaceholder
+                category={project.category}
+                aspectRatio="16/9"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Honest banner for anything not finished */}
+        {!isBuilt && (
+          <div
+            style={{
+              border: "1px solid var(--border)",
+              borderLeft: "3px solid var(--grey)",
+              borderRadius: 6,
+              background: "var(--background-secondary)",
+              padding: "1rem 1.25rem",
+              marginBottom: "3rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "0.9rem",
+                lineHeight: 1.7,
+                color: "var(--foreground-muted)",
+                margin: 0,
+              }}
+            >
+              <strong style={{ color: "var(--foreground)" }}>
+                {project.status === "planned"
+                  ? "Planned build."
+                  : "Build in progress."}
+              </strong>{" "}
+              What follows is the design and the decisions behind it, not a
+              record of finished work. Figures, measured data and the repository
+              go here as it gets built.
+            </p>
+          </div>
+        )}
+
+        {project.links.length > 0 && (
+          <section style={{ marginBottom: "3rem" }}>
+            <h2 style={headingStyle}>Links</h2>
             <ul
               style={{
-                listStyle: "none",
+                listStyleType: "none",
                 padding: 0,
+                margin: 0,
                 display: "flex",
                 flexDirection: "column",
                 gap: "0.5rem",
@@ -117,10 +317,9 @@ export default async function ProjectDetail({
                     style={{
                       color: "var(--blue-light)",
                       fontSize: "0.95rem",
-                      transition: "color 0.2s",
                     }}
                   >
-                    • {link.label}: {link.url}
+                    {link.label} →
                   </a>
                 </li>
               ))}
@@ -128,140 +327,58 @@ export default async function ProjectDetail({
           </section>
         )}
 
-        {/* Overview */}
         <section style={{ marginBottom: "3rem" }}>
-          <h2
-            style={{
-              fontSize: "1.2rem",
-              fontWeight: 600,
-              marginBottom: "1rem",
-              letterSpacing: "0.02em",
-              color: "var(--accent)",
-            }}
-          >
-            Overview
-          </h2>
-          <p
-            style={{
-              fontSize: "1rem",
-              lineHeight: 1.8,
-              color: "var(--foreground-muted)",
-            }}
-          >
-            {project.overview}
-          </p>
+          <h2 style={headingStyle}>The problem</h2>
+          <p style={proseStyle}>{project.problem}</p>
         </section>
 
-        {/* Materials Needed */}
-        {project.materials.length > 0 && (
+        <section style={{ marginBottom: "3rem" }}>
+          <h2 style={headingStyle}>Approach</h2>
+          <p style={proseStyle}>{project.approach}</p>
+        </section>
+
+        {project.tradeoffs.length > 0 && (
           <section style={{ marginBottom: "3rem" }}>
-            <h2
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 600,
-                marginBottom: "1rem",
-                letterSpacing: "0.02em",
-                color: "var(--accent)",
-              }}
-            >
-              Materials Needed
-            </h2>
+            <h2 style={headingStyle}>Trade-offs</h2>
+            {project.tradeoffs.map((s, i) => (
+              <SectionBlock key={i} section={s} />
+            ))}
+          </section>
+        )}
+
+        {project.sections.length > 0 && (
+          <section style={{ marginBottom: "3rem" }}>
+            <h2 style={headingStyle}>Design detail</h2>
+            {project.sections.map((s, i) => (
+              <SectionBlock key={i} section={s} />
+            ))}
+          </section>
+        )}
+
+        {project.nextTime.length > 0 && (
+          <section style={{ marginBottom: "3rem" }}>
+            <h2 style={headingStyle}>What I&apos;d do differently</h2>
             <ul
               style={{
                 paddingLeft: "1.5rem",
                 color: "var(--foreground-muted)",
-                lineHeight: 2,
-                // Tailwind's preflight resets list-style on ul, so set it back
+                fontSize: "0.95rem",
+                lineHeight: 1.8,
                 listStyleType: "disc",
               }}
             >
-              {project.materials.map((m, i) => (
-                <li key={i} style={{ fontSize: "0.95rem" }}>
-                  {m}
+              {project.nextTime.map((n, i) => (
+                <li key={i} style={{ marginBottom: "0.5rem" }}>
+                  {n}
                 </li>
               ))}
             </ul>
           </section>
         )}
 
-        {/* Instructions */}
-        {project.steps.length > 0 && (
-          <section style={{ marginBottom: "3rem" }}>
-            <h2
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 600,
-                marginBottom: "1.5rem",
-                letterSpacing: "0.02em",
-                color: "var(--accent)",
-              }}
-            >
-              Instructions
-            </h2>
-            {project.steps.map((step, i) => (
-              <div
-                key={i}
-                style={{
-                  marginBottom: "2rem",
-                  paddingLeft: "1.5rem",
-                  borderLeft: "2px solid var(--border)",
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: "1.05rem",
-                    fontWeight: 600,
-                    marginBottom: "0.75rem",
-                    color: "var(--foreground)",
-                  }}
-                >
-                  {i + 1}) {step.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: "0.95rem",
-                    lineHeight: 1.8,
-                    color: "var(--foreground-muted)",
-                    marginBottom: step.image ? "1rem" : 0,
-                  }}
-                >
-                  {step.content}
-                </p>
-                {step.image && (
-                  <div
-                    style={{
-                      aspectRatio: "16/9",
-                      background: "var(--background-secondary)",
-                      borderRadius: 6,
-                      backgroundImage: `url(${step.image})`,
-                      // contain, not cover: figures and schematics lose their
-                      // meaning when the edges get cropped away
-                      backgroundSize: "contain",
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "center",
-                      border: "1px solid var(--border)",
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </section>
-        )}
-
-        {/* Gallery */}
         {(project.images.length > 0 || project.videos.length > 0) && (
           <section style={{ marginBottom: "3rem" }}>
-            <h2
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 600,
-                marginBottom: "1rem",
-                letterSpacing: "0.02em",
-                color: "var(--accent)",
-              }}
-            >
-              Gallery
-            </h2>
+            <h2 style={headingStyle}>Gallery</h2>
             <div
               style={{
                 display: "grid",
@@ -270,42 +387,26 @@ export default async function ProjectDetail({
               }}
             >
               {project.images.map((img, i) => (
-                <div
-                  key={`img-${i}`}
-                  style={{
-                    aspectRatio: "16/10",
-                    background: "var(--background-secondary)",
-                    borderRadius: 6,
-                    backgroundImage: `url(${img})`,
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
-                    border: "1px solid var(--border)",
-                  }}
-                />
+                <Figure key={`img-${i}`} image={img} aspectRatio="16/10" />
               ))}
               {project.videos.map((vid, i) => (
-                <div
+                <video
                   key={`vid-${i}`}
+                  src={vid}
+                  controls
                   style={{
+                    width: "100%",
                     aspectRatio: "16/9",
                     borderRadius: 6,
-                    overflow: "hidden",
                     border: "1px solid var(--border)",
+                    background: "var(--background-secondary)",
                   }}
-                >
-                  <video
-                    src={vid}
-                    controls
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                </div>
+                />
               ))}
             </div>
           </section>
         )}
 
-        {/* Navigation */}
         <div
           style={{
             borderTop: "1px solid var(--border)",
