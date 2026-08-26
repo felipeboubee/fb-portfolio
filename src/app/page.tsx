@@ -89,8 +89,8 @@ export default function Home() {
             }}
           >
             Working in automation and controls, with robotics as the goal.
-            Everything here is written up as an engineering decision record —
-            what the problem was, what I chose, and what I gave up to choose it.
+            Each project here is written as an engineering decision record: the
+            problem, the option I picked, and what picking it cost.
           </p>
 
           <div

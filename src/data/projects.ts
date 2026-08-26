@@ -104,13 +104,13 @@ const projects: Project[] = [
       },
     ],
     problem:
-      "Proportional gain is the first thing you tune on any control loop and the first thing that misleads you. Textbooks state that gain trades responsiveness against stability; that sentence is easy to repeat and hard to feel. I wanted a rig where the trade-off is visible rather than asserted, with no hardware in the way — no motor driver to blame, no sensor noise to explain away, so that any behaviour on screen is attributable to the controller alone.",
+      "Proportional gain is the first thing you tune on any control loop and the first thing that misleads you. Textbooks state that gain trades responsiveness against stability; that sentence is easy to repeat and hard to feel. So I wanted a rig where you can watch the trade-off happen, with no hardware in the way: no motor driver to blame, no sensor noise to explain away, so anything odd on screen comes from the controller and nowhere else.",
     approach:
       "A differential-drive robot represented by its pose (x, y, theta), integrating a constant forward speed with a steering term derived from a single proportional gain. Left and right wheel speeds always average to base_v, so the two wheels differ only by the steering command. The whole simulation is NumPy, importable as a module, so the same run can be driven from a plotting script or a sweep. Three gains, one starting offset of 0.4 m, 400 steps each, plotted side by side.",
     tradeoffs: [
       {
         title: "Choosing the gain",
-        body: "The same starting offset through three gains produces three qualitatively different failures and successes. This is the whole point of the project, and the numbers are more convincing than the description:",
+        body: "The same starting offset through three gains produces three qualitatively different outcomes. The numbers make the case better than any description of them:",
         table: {
           headers: ["Kp", "Behaviour", "Forward progress in 400 steps"],
           rows: [
@@ -134,7 +134,7 @@ const projects: Project[] = [
       },
       {
         title: "Why the high-gain failure looks the way it does",
-        body: "The third case is the instructive one. Because steering is differential, an over-large correction spins the robot rather than advancing it — so the cost of excess gain is not just oscillation, it is throughput. The robot covers 0.3 m in the same 400 steps that carry the other two runs 9.9 m. That is a 33× loss in forward progress from a single badly chosen constant.",
+        body: "The third case is the instructive one. Steering here is differential, so an over-large correction spins the robot instead of advancing it. The robot covers 0.3 m in the same 400 steps that carry the other two runs 9.9 m. Excess gain costs throughput, which is not what the word \"oscillation\" prepares you for, and here it is a 33× loss from one badly chosen constant.",
         image: {
           src: "/projects/python-line-follower-sim/kp_comparison.png",
           alt: "Three side-by-side plots of the robot path at proportional gains of 0.1, 4.0 and 20.0, showing ringing, smooth convergence, and unstable thrashing respectively",
@@ -142,7 +142,7 @@ const projects: Project[] = [
       },
       {
         title: "One gain, but not a pure-P loop",
-        body: "The error signal combines two terms: error = -y - 0.5 * theta. The first is lateral offset from the line. The second is heading — and because forward speed is constant in this model, heading stands in for the rate of change of the offset. So while Kp is a single proportional gain, the signal it acts on already carries a damping term, which makes the loop behave closer to PD than to a textbook pure-P controller. Worth stating plainly, because the smooth convergence at Kp = 4.0 would be harder to achieve without it.",
+        body: "The error signal combines two terms: error = -y - 0.5 * theta. The first is lateral offset from the line. The second is heading, and because forward speed is constant in this model, heading stands in for the rate of change of the offset. So Kp is a single proportional gain, but the signal it acts on already carries a damping term. That puts the loop closer to PD than to a textbook pure-P controller. Worth saying plainly, because the smooth convergence at Kp = 4.0 would be harder to get without it.",
       },
     ],
     sections: [
@@ -156,12 +156,12 @@ const projects: Project[] = [
       },
       {
         title: "Running it",
-        body: "python line_follower.py — no hardware required, NumPy only. To regenerate both figures into results/: pip install -r requirements.txt, then python generate_plots.py. Requires Python 3.8+; Matplotlib is needed only by the plotting script.",
+        body: "python line_follower.py, no hardware required, NumPy only. To regenerate both figures into results/: pip install -r requirements.txt, then python generate_plots.py. Requires Python 3.8+; Matplotlib is needed only by the plotting script.",
       },
     ],
     nextTime: [
-      "Bound the wheel speeds so the motors saturate, and re-run the Kp = 20 case — I expect the failure mode to change from spinning-in-place to a slower limit cycle.",
-      "Add a discrete IR sensor array model with quantization and noise, which is what turns this from a control demo into a line follower.",
+      "Bound the wheel speeds so the motors saturate, and re-run the Kp = 20 case. I expect the failure mode to change from spinning-in-place to a slower limit cycle.",
+      "Add a discrete IR sensor array model with quantization and noise, so the controller has to infer the offset instead of being handed it.",
       "Port the same loop onto the ESP32 in the networked motor controller build, so the simulated tuning can be checked against a real plant.",
     ],
     images: [
@@ -197,21 +197,21 @@ const projects: Project[] = [
     ],
     links: [],
     problem:
-      "A sorting station has to run unattended and fail safely, which makes it a much harder problem than 'turn the conveyor on'. It has to start and stop from momentary pushbuttons and stay in the state it was put in. It has to stop when the e-stop opens and not restart when the e-stop is released. It has to count items without double-counting the one item that happens to be sitting under the photoeye when the belt stalls. And it has to divert the right item, which means the divert decision has to be tied to position, not just to a sensor being made.",
+      "A sorting station has to run unattended and fail safely, which makes it a much harder problem than 'turn the conveyor on'. It starts and stops from momentary pushbuttons and has to stay in the state it was put in. The e-stop has to stop it, and releasing the e-stop must not start it again. It has to count items without double-counting the one that happens to be sitting under the photoeye when the belt stalls. And the divert decision has to be tied to position, not just to a sensor being made, or it pushes the wrong item.",
     approach:
-      "The control logic is one state machine with exactly one step active at a time (idle → running → sorting → fault), which makes the behaviour reviewable and the faults local. Start/stop is a seal-in rung. The e-stop is a hardwired series circuit the PLC observes but never overrides. Items are counted on the rising edge of the photoeye, not on its level. The divert output is gated on both the sort sensor and the conveyor actually running. An HMI on top exposes run/stop, the item count, and a fault indicator — enough for an operator, not so much that it hides the logic.",
+      "The control logic is one state machine with exactly one step active at a time (idle → running → sorting → fault), so the behaviour is reviewable and a fault stays local. Start/stop is a seal-in rung. The e-stop is a hardwired series circuit the PLC observes but never overrides. Items are counted on the rising edge of the photoeye, not on its level. The divert output is gated on both the sort sensor and the conveyor actually running. An HMI on top exposes run/stop, the item count and a fault indicator. That is enough for an operator to work with and little enough that it does not hide the logic.",
     tradeoffs: [
       {
         title: "Structured Text for the sequencer, ladder for the motor rungs",
-        body: "ST diffs readably in Git and can be reasoned about as text, which matters for a portfolio repo and for review. But the motor and safety rungs stay in ladder, because that is what a maintenance electrician will be standing in front of at 3 a.m. Choosing one language for the whole program optimises for the author; choosing per-purpose optimises for whoever maintains it.",
+        body: "ST diffs readably in Git and can be reasoned about as text, which matters for a portfolio repo and for review. But the motor and safety rungs stay in ladder, because that is what a maintenance electrician will be standing in front of at 3 a.m. One language everywhere would be tidier for me and worse for them.",
       },
       {
         title: "Edge counting over level counting",
-        body: "Counting while the photoeye is made is the obvious implementation and it is wrong: if the belt stalls or an item is long, the count runs away. Rising-edge detection with a short debounce counts transitions instead of time, so a stalled belt holds the count rather than inflating it. The failure this prevents is silent — the cell keeps running and just reports the wrong number — which is exactly the kind of bug worth designing out rather than testing out.",
+        body: "Counting while the photoeye is made is the obvious implementation and it is wrong: if the belt stalls or an item is long, the count runs away. Rising-edge detection with a short debounce counts transitions instead of time, so a stalled belt holds the count instead of inflating it. The failure it prevents is a silent one. The cell keeps running and just reports the wrong number, which is the kind of bug you want gone by design, because testing rarely catches it.",
       },
       {
         title: "Latching faults instead of auto-clearing",
-        body: "A fault that clears itself when the condition goes away produces a cell that restarts on its own, which is a safety problem and a diagnosis problem. Latching the fault and requiring an explicit reset costs one extra operator action and buys an accurate record of what happened.",
+        body: "A fault that clears itself when the condition goes away produces a cell that restarts on its own. That is a safety problem, and it also destroys the evidence of what went wrong. Latching the fault and requiring an explicit reset costs the operator one extra button press and leaves an accurate record behind.",
       },
     ],
     sections: [
@@ -253,7 +253,7 @@ const projects: Project[] = [
     nextTime: [
       "Expose the cell over OPC-UA rather than direct simulator I/O mapping, so the same logic can drive real hardware without rework.",
       "Add retentive counters that survive a power cycle, and an alarm history rather than a single fault lamp.",
-      "Port the program to ABB Automation Builder — it is CODESYS-based, so the logic should transfer nearly unchanged, which is worth proving rather than assuming.",
+      "Port the program to ABB Automation Builder. It is CODESYS-based, so the logic should transfer nearly unchanged, and I would rather prove that than assume it.",
     ],
     images: [],
     videos: [],
@@ -279,17 +279,17 @@ const projects: Project[] = [
     ],
     links: [],
     problem:
-      "Holding a setpoint is not the hard part; holding it while the load changes, without oscillating the valve to death, and while an operator can see what is happening, is. This build has to do three things that a discrete-logic project never touches: close an analog loop, scale a raw signal into units a human can read, and make the loop observable enough that a bad tune is visible as a trend rather than inferred from a complaint.",
+      "Holding a setpoint is easy. Holding it while the load changes, without oscillating the valve to death, and with an operator able to see what is happening, is not. This build has to close an analog loop, scale a raw signal into units a human can read, and make the loop observable enough that a bad tune shows up as a trend before someone complains about it. A discrete-logic project touches none of that.",
     approach:
-      "An analog level or temperature signal drives a PID function block in the PLC, which drives a pump, valve or heater to hold a setpoint. The raw signal is scaled to engineering units at the edge, so every layer above it speaks in metres or degrees. Ignition provides the SCADA layer: live PV/SP/OP, a trend, alarms with acknowledgement, and setpoint entry. Tuning is done from step responses and documented as plots rather than described as 'it felt stable'.",
+      "An analog level or temperature signal drives a PID function block in the PLC, which drives a pump, valve or heater to hold a setpoint. The raw signal is scaled to engineering units at the edge, so every layer above it speaks in metres or degrees. Ignition provides the SCADA layer: live PV/SP/OP, a trend, alarms with acknowledgement, and setpoint entry. Tuning is done from step responses and documented as plots, not as 'it felt stable'.",
     tradeoffs: [
       {
         title: "P, PI or PID — decided per loop, not once",
-        body: "Proportional-only leaves a steady-state offset (droop) that is unacceptable on level. Adding integral removes the offset but adds phase lag and overshoot. Derivative helps on a slow thermal loop where it predicts the approach to setpoint, but on a level signal it amplifies sensor noise into valve movement. So: PI for level, PID for temperature. Applying the same structure to both loops would be simpler and worse.",
+        body: "Proportional-only leaves a steady-state offset (droop) that is unacceptable on level. Adding integral removes the offset but adds phase lag and overshoot. Derivative helps on a slow thermal loop where it predicts the approach to setpoint, but on a level signal it amplifies sensor noise into valve movement. So: PI for level, PID for temperature. Using one structure for both would be less code and a noisier valve.",
       },
       {
         title: "Ziegler–Nichols as a starting point, not an answer",
-        body: "Z-N is a fast way to get into the right order of magnitude, and it deliberately targets roughly quarter-amplitude damping — which is more oscillation than a real valve should be asked to deliver for years. The plan is to use Z-N for the first pass and then detune the controller gain, trading a slower rise for less overshoot and less actuator wear. The tuning table below is where that trade gets made explicit.",
+        body: "Z-N gets you into the right order of magnitude fast, and it deliberately targets roughly quarter-amplitude damping. That is more oscillation than a real valve should be asked to deliver for years. So the plan is Z-N for the first pass, then detune the controller gain and accept a slower rise in exchange for less overshoot and less actuator wear. The table below is where that trade gets written down.",
         table: {
           headers: [
             "Loop",
@@ -329,7 +329,7 @@ const projects: Project[] = [
       },
       {
         title: "Scaling at the edge rather than in the SCADA",
-        body: "Converting raw counts to engineering units in the PLC means the HMI, the trends, the alarm limits and the historian all agree by construction. Scaling in the presentation layer instead is quicker to implement and creates a class of bug where the alarm fires at a different value than the trend displays.",
+        body: "Converting raw counts to engineering units in the PLC means the HMI, the trends, the alarm limits and the historian all agree by construction. Scaling in the presentation layer instead is quicker to implement and opens a class of bug where the alarm fires at one value and the trend shows another.",
       },
     ],
     sections: [
@@ -339,14 +339,14 @@ const projects: Project[] = [
       },
       {
         title: "Signal scaling",
-        body: "A 4–20 mA transmitter maps to raw counts in the PLC, and raw counts map linearly to engineering units: EU = (raw − raw_min) / (raw_max − raw_min) × span + EU_min. Living at 4 mA rather than 0 mA is what makes a broken wire distinguishable from a genuine zero reading — the reason the standard exists, and worth stating in the narrative.",
+        body: "A 4–20 mA transmitter maps to raw counts in the PLC, and raw counts map linearly to engineering units: EU = (raw − raw_min) / (raw_max − raw_min) × span + EU_min. Living at 4 mA instead of 0 mA is what makes a broken wire distinguishable from a genuine zero reading. That is the reason the standard exists, and it belongs in the control narrative.",
       },
       {
         title: "Alarms and acknowledgement",
         bullets: [
           "High and low process alarms on PV, with deadband so a signal sitting on the limit does not chatter.",
           "Alarms require operator acknowledgement; an unacknowledged alarm stays visible after the condition clears.",
-          "A deviation alarm on |PV − SP| catches a loop that is stable but not controlling — the failure a PV-only alarm misses.",
+          "A deviation alarm on |PV − SP| catches a loop that is stable but not controlling, which a PV-only alarm misses entirely.",
         ],
       },
       {
@@ -355,7 +355,7 @@ const projects: Project[] = [
       },
     ],
     nextTime: [
-      "Add anti-windup so the integral term stops accumulating while the valve is saturated — without it, a long saturation produces a large overshoot on recovery.",
+      "Add anti-windup so the integral term stops accumulating while the valve is saturated. Without it, a long saturation produces a large overshoot on recovery.",
       "Add bumpless auto/manual transfer, so switching modes does not step the output.",
       "Add feedforward on the measured load, which should reduce the deviation the feedback loop has to correct at all.",
       "Log to a historian for long-horizon trends rather than a session-length chart.",
@@ -385,27 +385,27 @@ const projects: Project[] = [
     ],
     links: [],
     problem:
-      "The same motor controller has to be legible to two worlds that do not share vocabulary. A PLC or SCADA system wants a Modbus register map. A ROS 2 graph wants topics with typed messages. Building it twice is waste; building it once with two front-ends raises a real question — what happens when both try to command it at the same time. Underneath that, the control problem itself: hold a speed setpoint under changing load, using an encoder whose velocity estimate gets worse at exactly the speeds you care about.",
+      "The same motor controller has to be legible to two worlds that do not share vocabulary. A PLC or SCADA system wants a Modbus register map. A ROS 2 graph wants topics with typed messages. Building it twice is waste; building it once with two front-ends raises a real question, which is what happens when both try to command it at the same time. Underneath that sits the control problem itself: hold a speed setpoint under changing load, using an encoder whose velocity estimate gets worse at exactly the speeds you care about.",
     approach:
       "One control core, two network front-ends. PWM drives the motor; a quadrature encoder is read on a hardware timer with interrupt-driven counting. A PID speed loop runs in a FreeRTOS task at a fixed rate, deliberately not in the ISR, so loop jitter stays bounded while the Wi-Fi and protocol stacks get scheduled around it. Modbus TCP exposes setpoint, measured speed and status as registers. micro-ROS publishes speed and subscribes to a command topic. A mode register decides which interface owns the setpoint at any moment.",
     tradeoffs: [
       {
         title: "Encoder velocity: fixed interval or edge period",
-        body: "Counting edges in a fixed time window is simple and accurate at speed, but at low RPM you get one or two counts per window and the velocity estimate turns to noise. Measuring the period between edges is precise at low speed and noisy at high speed, where periods get short relative to timer resolution. The plan is fixed-interval counting with a longer averaging window below a threshold RPM — accepting slower response at low speed in exchange for a usable signal there at all.",
+        body: "Counting edges in a fixed time window is simple and accurate at speed, but at low RPM you get one or two counts per window and the velocity estimate turns to noise. Measuring the period between edges is precise at low speed and noisy at high speed, where periods get short relative to timer resolution. The plan is fixed-interval counting with a longer averaging window below a threshold RPM. Response at low speed gets slower, which is the price of having a usable signal down there at all.",
       },
       {
         title: "Control loop in a task, not the ISR",
-        body: "Running PID inside the encoder ISR gives the tightest timing and starves everything else, including the network stacks this project exists to demonstrate. A fixed-rate FreeRTOS task keeps the loop period deterministic enough for a motor loop while leaving CPU for Wi-Fi. The cost is jitter measured in task-scheduling latency rather than in clock cycles; for a speed loop at a few hundred Hz that is an acceptable trade, and for a current loop it would not be.",
+        body: "Running PID inside the encoder ISR gives the tightest timing and starves everything else, including the network stacks this project exists to demonstrate. A fixed-rate FreeRTOS task keeps the loop period deterministic enough for a motor loop while leaving CPU for Wi-Fi. The cost is jitter measured in task-scheduling latency instead of clock cycles. At a few hundred Hz that is fine for a speed loop. A current loop would not survive it.",
       },
       {
         title: "Two interfaces, one authority",
-        body: "Letting Modbus and micro-ROS both write the setpoint is a genuine hazard: two masters, no arbitration, and a motor that obeys whichever wrote last. A mode register makes ownership explicit and inspectable. Silent last-write-wins would be less code and an unsafe device.",
+        body: "Letting Modbus and micro-ROS both write the setpoint is a genuine hazard: two masters, no arbitration, and a motor that obeys whichever wrote last. A mode register makes ownership explicit and inspectable from either side. Silent last-write-wins would save maybe thirty lines and produce a device I would not want near a machine.",
       },
     ],
     sections: [
       {
         title: "Architecture",
-        body: "Firmware is organised in three layers: a hardware layer (PWM, encoder, driver enable), a control layer (the PID task and the mode arbiter), and a transport layer (Modbus TCP server and micro-ROS node). Only the transport layer knows about networks; only the hardware layer knows about pins. The control core is the same code in both cases, which is the point of the build.",
+        body: "Firmware is organised in three layers: a hardware layer (PWM, encoder, driver enable), a control layer (the PID task and the mode arbiter), and a transport layer (Modbus TCP server and micro-ROS node). Only the transport layer knows about networks; only the hardware layer knows about pins. The control core is the same code either way.",
       },
       {
         title: "Modbus register map",
@@ -436,7 +436,7 @@ const projects: Project[] = [
     nextTime: [
       "Add a comms watchdog so loss of the command interface ramps the motor to zero instead of holding the last setpoint indefinitely.",
       "Add current sensing for a torque limit, which also makes stall detection possible.",
-      "Move off Wi-Fi to CAN for the industrial path — Wi-Fi latency is fine for a demo and wrong for determinism.",
+      "Move off Wi-Fi to CAN for the industrial path. Wi-Fi latency is fine for a demo and wrong for anything that needs determinism.",
     ],
     images: [],
     videos: [],
@@ -462,17 +462,17 @@ const projects: Project[] = [
     ],
     links: [],
     problem:
-      "Two controllers with different cycle times, different programming models and different safety models have to cooperate on one physical sequence, without either one assuming the other's internal state. This is the actual work of robot integration, and it is where the interesting failures live: a dropped signal that leaves both sides waiting, a robot that starts moving before the part is settled, a conveyor that advances into an arm still inside the cell.",
+      "Two controllers with different cycle times, different programming models and different safety models have to cooperate on one physical sequence, without either one assuming the other's internal state. That is most of what robot integration actually is, and the failures are specific: a dropped signal that leaves both sides waiting, a robot that starts moving before the part is settled, a conveyor that advances into an arm still inside the cell.",
     approach:
       "The PLC owns the cell and the safety; the robot owns the motion. Nothing is shared except an explicit handshake, carried over OPC-UA as named, typed nodes. The handshake is sequenced rather than level-driven, so a missed transition is recoverable instead of deadlocking. SCADA sits above for cell state, cycle count and faults. The same design runs against URSim or against a ROS 2 / MoveIt 2 arm, which keeps the build honest about where the coupling actually is.",
     tradeoffs: [
       {
         title: "Sequence counter over level bits",
-        body: "A handshake made of plain level bits ('part ready' high, 'pick done' high) deadlocks the moment a transition is missed — both sides sit waiting for an edge that already happened. Pairing each signal with a sequence number makes the exchange idempotent: a repeated message is recognised as the same job, and a resynchronisation is possible without power-cycling the cell. It costs a register and removes a whole class of hang.",
+        body: "A handshake made of plain level bits ('part ready' high, 'pick done' high) deadlocks the moment a transition is missed. Both sides sit waiting for an edge that already happened. Pairing each signal with a sequence number makes the exchange idempotent: a repeated message is recognised as the same job, and the two sides can resynchronise without power-cycling the cell. One extra register, and a whole class of hang stops existing.",
       },
       {
         title: "OPC-UA over Modbus for the handshake",
-        body: "Modbus is lighter and would work, but the register map becomes tribal knowledge held in a spreadsheet. OPC-UA nodes are named and typed, self-describing to anyone who connects, and closer to what integrators and DCS platforms actually expose. The cost is a heavier stack and more configuration for a demo cell — worth it because the point of this build is integration practice, not minimal bytes on the wire.",
+        body: "Modbus is lighter and would work, but the register map becomes tribal knowledge held in a spreadsheet. OPC-UA nodes are named and typed, self-describing to anyone who connects, and closer to what integrators and DCS platforms actually expose. It costs a heavier stack and more configuration than a demo cell needs, which is worth paying, because this build exists to practise integration and integrators do not hand you a spreadsheet of register numbers.",
         table: {
           headers: ["Step", "PLC → Robot", "Robot → PLC", "Meaning"],
           rows: [
@@ -500,7 +500,7 @@ const projects: Project[] = [
       },
       {
         title: "Standard OPC-UA is not the safety path",
-        body: "The handshake coordinates the sequence; it does not make the cell safe. Safety stays in the hardwired e-stop and the robot's own safety controller, because a standard-Ethernet protocol has no integrity guarantee suitable for a safety function. Naming this explicitly is part of the deliverable — conflating coordination with safety is the most consequential mistake available in this project.",
+        body: "The handshake coordinates the sequence; it does not make the cell safe. Safety stays in the hardwired e-stop and the robot's own safety controller, because a standard-Ethernet protocol has no integrity guarantee suitable for a safety function. Saying so explicitly is part of the deliverable. Confusing coordination with safety is the most consequential mistake available in this project.",
       },
     ],
     sections: [
@@ -524,7 +524,7 @@ const projects: Project[] = [
     ],
     nextTime: [
       "Put the safety path on a safety-rated protocol rather than leaving it entirely hardwired, and document the safety function properly.",
-      "Budget the cycle time per step to find where the cell actually loses throughput — my expectation is the robot's approach and retract, not the conveyor.",
+      "Budget the cycle time per step to find where the cell actually loses throughput. My money is on the robot's approach and retract, not the conveyor.",
       "Add part traceability, so each unit carries an ID through the cell rather than being counted anonymously.",
       "Rebuild the robot side in RAPID on RobotStudio, since that is the dialect that matters for the roles this build targets.",
     ],
@@ -545,45 +545,45 @@ const projects: Project[] = [
     stack: ["ROS 2", "Gazebo", "slam_toolbox", "Nav2", "RViz", "Python"],
     links: [],
     problem:
-      "Navigating a known map is a solved exercise. Arriving somewhere new is not, because the two questions a robot needs answered are circular: placing sensor readings into a map requires knowing where you are, and knowing where you are requires a map to match against. Neither half breaks the deadlock alone. Wheel odometry, the obvious source of motion, drifts without bound the moment a wheel slips — and it always slips.",
+      "Navigating a known map is a solved exercise. Arriving somewhere new is not, because the two questions a robot needs answered are circular: placing sensor readings into a map requires knowing where you are, and knowing where you are requires a map to match against. Neither half breaks the deadlock alone. Wheel odometry, the obvious source of motion, drifts without bound the moment a wheel slips, and it always slips.",
     approach:
-      "Estimate both at once and close loops. Each lidar scan is matched against the accumulating map to recover the rigid transform that best overlaps them, which is a far better motion measurement than integrating wheel encoders. Poses become nodes in a pose graph. When the robot recognises somewhere it has been, loop closure adds a constraint that redistributes accumulated drift back through the whole trajectory and the map — which is what makes a long traverse actually line up on return. Built on slam_toolbox in Gazebo, so the ground truth is available to check the result against.",
+      "Estimate both at once and close loops. Each lidar scan is matched against the accumulating map to recover the rigid transform that best overlaps them, which is a far better motion measurement than integrating wheel encoders. Poses become nodes in a pose graph. When the robot recognises somewhere it has been, loop closure adds a constraint that redistributes accumulated drift back through the whole trajectory and the map. That is what makes a long traverse line up when you come back to where you started. Built on slam_toolbox in Gazebo, so ground truth is available to check the result against.",
     tradeoffs: [
       {
         title: "Scan matching and odometry, not scan matching or odometry",
-        body: "Scan matching beats odometry almost everywhere, and fails precisely where a building is featureless — a long uniform corridor is geometrically degenerate, and the match slides along it. Odometry is bad but never degenerate in that way. Fusing them means the corridor case falls back on odometry while the general case is carried by scan matching. Trusting either alone produces a map that fails in a way characteristic of that choice.",
+        body: "Scan matching beats odometry almost everywhere, and fails precisely where a building is featureless. A long uniform corridor is geometrically degenerate: the match just slides along it. Odometry is bad but never degenerate in that way. Fusing them means the corridor case falls back on odometry while scan matching carries everything else. Either one alone gives you a map that is wrong in its own particular style.",
       },
       {
         title: "Loop-closure aggressiveness",
-        body: "This is the tuning decision that decides whether the map is usable. A loose match threshold accepts false closures, and a single false closure folds the map onto itself — catastrophic and obvious. A tight threshold misses real closures, so drift is never corrected and the map degrades gracefully into being subtly wrong, which is worse to diagnose. The search radius and minimum match score get tuned against a known Gazebo world where the correct answer is available.",
+        body: "This is the tuning decision the map lives or dies on. A loose match threshold accepts false closures, and a single false closure folds the map onto itself: catastrophic, and obvious the moment you look at it. A tight threshold misses real closures, so drift is never corrected and the map degrades quietly into being subtly wrong, which is much harder to notice. The search radius and minimum match score get tuned against a known Gazebo world where the correct answer is available.",
       },
       {
         title: "Grid resolution against compute",
-        body: "A 2 cm occupancy grid resolves door frames and table legs; a 5 cm grid halves the memory and speeds up every scan match. For a robot whose job is navigating rooms rather than manipulating objects, 5 cm is likely the right call — but this is a decision that should be made against a measured map-quality figure rather than by feel, which is why ground truth matters here.",
+        body: "A 2 cm occupancy grid resolves door frames and table legs; a 5 cm grid halves the memory and speeds up every scan match. For a robot whose job is navigating rooms and not manipulating objects, 5 cm is probably right. But 'probably' is not good enough for a number that enters every scan match, so this one gets decided against a measured map-quality figure. That is part of why ground truth matters here.",
       },
     ],
     sections: [
       {
         title: "Architecture and TF tree",
-        body: "The transform chain is the thing to get right: map → odom → base_link → laser. SLAM owns the map → odom correction; the odometry source owns odom → base_link; the robot description owns the rest. Most confusing SLAM behaviour turns out to be a transform published by the wrong node or at the wrong time, so the TF tree is part of the deliverable, not an implementation detail.",
+        body: "The transform chain is the thing to get right: map → odom → base_link → laser. SLAM owns the map → odom correction; the odometry source owns odom → base_link; the robot description owns the rest. Most confusing SLAM behaviour turns out to be a transform published by the wrong node or at the wrong time, so the TF tree ships as part of the deliverable.",
       },
       {
         title: "Sensor and noise model",
         bullets: [
-          "Lidar with realistic range noise and angular resolution — a noiseless scan makes SLAM look far better than it is.",
+          "Lidar with realistic range noise and angular resolution. A noiseless scan makes SLAM look far better than it is.",
           "Wheel odometry with slip, so the drift the loop closure has to absorb is real.",
           "Ground truth pose from Gazebo, used only for evaluation, never fed to the estimator.",
         ],
       },
       {
         title: "Evidence it works",
-        body: "Absolute trajectory error against Gazebo ground truth, before and after loop closure, plus the saved occupancy grid compared against the world it was built from. Then the map gets handed to Nav2 and used for an actual navigation run — a map that cannot be navigated is not a result.",
+        body: "Absolute trajectory error against Gazebo ground truth, before and after loop closure, plus the saved occupancy grid compared against the world it was built from. Then the map gets handed to Nav2 and used for an actual navigation run. A map you cannot navigate is not a result.",
       },
     ],
     nextTime: [
       "Run it on real hardware with an RPLidar on a differential-drive base, where the noise model stops being a parameter I chose.",
       "Localize against the saved map with AMCL, which is the other half of the job and a different failure surface.",
-      "Try multi-session mapping, merging maps from separate runs — the point where pose-graph SLAM starts to get genuinely hard.",
+      "Try multi-session mapping, merging maps from separate runs. That is where pose-graph SLAM starts to get genuinely hard.",
     ],
     images: [],
     videos: [],
@@ -596,7 +596,7 @@ const projects: Project[] = [
     category: "digital-design",
     status: "planned",
     tagline:
-      "A small but real processor in Verilog — fetch, decode, execute, register file and ALU — running a machine-code program in simulation, with a waveform proving it.",
+      "A small but real processor in Verilog (fetch, decode, execute, register file and ALU) running a machine-code program in simulation, with a waveform to prove it.",
     thumbnail: "",
     thumbnailAlt: "",
     stack: [
@@ -608,17 +608,17 @@ const projects: Project[] = [
     ],
     links: [],
     problem:
-      "It is possible to use processors for years without being able to say what one is. The gap between 'I can write firmware' and 'I know what the silicon does with it' is the whole point of this build. The realisation worth earning is that a CPU is not exotic: it is a finite-state machine wrapped around a datapath, assembled from combinational logic, registers and FSMs. Proving that means building one that actually runs a program.",
+      "It is possible to use processors for years without being able to say what one is. This build exists to close the gap between 'I can write firmware' and 'I know what the silicon does with it'. A CPU turns out not to be exotic: it is a finite-state machine wrapped around a datapath, assembled from combinational logic, registers and FSMs. The way to be sure of that is to build one and run a program on it.",
     approach:
-      "Four parts and a contract. A program counter holding the next address; instruction memory that fetch reads; a register file built from the same flip-flops as any other sequential logic, with read and write ports; and an ALU that is pure combinational logic. The instruction cycle is an FSM sequencing that datapath: fetch, decode, execute, writeback. The other half of the work is defining a tiny instruction set — the actual contract between hardware and software — and then running a real program, computing a Fibonacci number, with a waveform as the proof.",
+      "Four parts and a contract. A program counter holding the next address; instruction memory that fetch reads; a register file built from the same flip-flops as any other sequential logic, with read and write ports; and an ALU that is pure combinational logic. The instruction cycle is an FSM sequencing that datapath: fetch, decode, execute, writeback. The other half of the work is defining a tiny instruction set, which is the actual contract between hardware and software, and then running a real program on it: a Fibonacci number, with a waveform as the proof.",
     tradeoffs: [
       {
         title: "Multi-cycle FSM over single-cycle or pipelined",
-        body: "Single-cycle is the simplest to reason about and sets the clock period by the slowest instruction's whole path, wasting most of the cycle for everything else. Pipelining is what real cores do and immediately introduces data and control hazards, which is a second project rather than a refinement of this one. A multi-cycle FSM reuses the datapath across cycles, keeps the critical path short, and makes the control logic the thing you can actually see working in a waveform — which is the learning objective here.",
+        body: "Single-cycle is the simplest to reason about, and it sets the clock period by the slowest instruction's whole path, so most of every cycle goes to waste. Pipelining is what real cores do, and it immediately introduces data and control hazards, which makes it a second project instead of a refinement of this one. A multi-cycle FSM reuses the datapath across cycles, keeps the critical path short, and puts the control logic somewhere you can watch it work in a waveform. That last part is what I am here for.",
       },
       {
         title: "Fixed-width instruction encoding",
-        body: "A fixed 16-bit encoding keeps instruction decode purely combinational: fields are always in the same bit positions, so decode is wiring rather than sequencing. Variable-length encoding uses instruction memory more densely and makes the fetch stage stateful. For a first core, spending memory to keep decode trivial is clearly the right trade.",
+        body: "A fixed 16-bit encoding keeps instruction decode purely combinational: fields are always in the same bit positions, so decode is wiring and not sequencing. Variable-length encoding packs instruction memory more densely and makes the fetch stage stateful. On a first core I would rather spend the memory and keep decode trivial.",
         table: {
           headers: ["Opcode", "Mnemonic", "Operands", "Operation"],
           rows: [
@@ -633,7 +633,7 @@ const projects: Project[] = [
       },
       {
         title: "Eight registers rather than thirty-two",
-        body: "Eight registers need three bits of address, which fits three operands plus an opcode inside sixteen bits. Thirty-two registers would need five bits each and force a wider instruction or fewer operands. Eight is enough to write Fibonacci; the constraint is what makes the encoding fit, and noticing that the register count and the instruction width are the same decision is most of the insight.",
+        body: "Eight registers need three bits of address, which fits three operands plus an opcode inside sixteen bits. Thirty-two registers would need five bits each and force a wider instruction or fewer operands. Eight is enough to write Fibonacci. What took me a moment to see is that the register count and the instruction width are not two decisions, they are one.",
       },
     ],
     sections: [
@@ -646,16 +646,16 @@ const projects: Project[] = [
         bullets: [
           "Unit testbenches per module: ALU against exhaustive small-operand cases, register file for read-during-write behaviour.",
           "A whole-core test running a Fibonacci program to a HALT, checking the final register contents.",
-          "A GTKWave capture of the control FSM stepping through fetch/decode/execute/writeback — the artefact that shows the thing genuinely works.",
+          "A GTKWave capture of the control FSM stepping through fetch/decode/execute/writeback, which is the artefact that shows it genuinely works.",
         ],
       },
       {
         title: "Optional synthesis",
-        body: "The open-source flow (Yosys and nextpnr) targets a sub-$20 Tang Nano or iCE40 board, which turns simulation into a device that runs. Reporting LUT and flip-flop utilisation and the achieved clock is what makes it a hardware result rather than a simulation result.",
+        body: "The open-source flow (Yosys and nextpnr) targets a sub-$20 Tang Nano or iCE40 board, which turns simulation into a device that runs. Reporting LUT and flip-flop utilisation and the achieved clock is what turns it from a simulation result into a hardware one.",
       },
     ],
     nextTime: [
-      "Add a 5-stage pipeline with hazard detection and forwarding — the natural next project, and where the difficulty actually is.",
+      "Add a 5-stage pipeline with hazard detection and forwarding. That is the natural next project, and where the actual difficulty lives.",
       "Write an assembler, so programs stop being hand-assembled hex and the ISA gets tested as a contract.",
       "Add a memory interface with load and store, which the current register-only ISA deliberately avoids.",
     ],
