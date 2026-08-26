@@ -41,7 +41,7 @@ export default function ProjectsPage() {
           }}
         >
           Automation and controls, robotics, embedded electronics and digital
-          design. Each one is written up as an engineering decision record — the
+          design. Each one is written up as an engineering decision record: the
           problem, the approach, the trade-offs that had real alternatives, and
           what a second pass would change. Status is labelled on every card.
         </p>
