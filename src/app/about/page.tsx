@@ -49,10 +49,10 @@ export default function AboutPage() {
 
         <p style={paragraphStyle}>
           I&apos;m an Electronic Engineering student at Universidad de Palermo,
-          in Buenos Aires. Before this I spent seven years in finance — most
-          recently as an Equity Capital Markets analyst at J.P. Morgan, and
-          before that in analyst roles at Sun Life Capital Management, The Walt
-          Disney Company and J.P. Morgan&apos;s equities middle office.
+          in Buenos Aires. Before this I spent seven years in finance, most
+          recently as an Equity Capital Markets analyst at J.P. Morgan. Earlier
+          roles were at Sun Life Capital Management, The Walt Disney Company and
+          J.P. Morgan&apos;s equities middle office.
         </p>
 
         <p style={paragraphStyle}>
@@ -60,18 +60,18 @@ export default function AboutPage() {
           embedded electronics adjacent to both. Alongside the degree I work
           through a self-directed curriculum covering PLC programming and
           industrial control, PID and process control, ROS 2, and embedded
-          firmware — and I build the projects listed on this site as I go. Each
-          one is written up as a decision record rather than a tutorial, because
-          the interesting part of an engineering project is the reasoning, not
-          the steps.
+          firmware, building the projects listed on this site as I go. I write
+          them up as decision records instead of tutorials. Most of the time on
+          any of these went into choosing between options, and that is the part
+          worth reading.
         </p>
 
         <p style={paragraphStyle}>
           The finance background is not unrelated. Seven years of working to
           specifications, documenting what I did so someone else could audit it,
           and being accountable for numbers that mattered turns out to transfer
-          fairly directly to controls work — where the difference between a
-          project and a demonstrated build is documented proof.
+          fairly directly to controls work, which also runs on written evidence
+          that someone else can check.
         </p>
 
         {/* At a glance — this space previously held an unfilled photo slot */}
