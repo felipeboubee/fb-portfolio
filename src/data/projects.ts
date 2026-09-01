@@ -179,6 +179,125 @@ const projects: Project[] = [
 
   // ────────────────────────────────────────────────────────────────────────
   {
+    slug: "python-sensor-logger",
+    title: "Python Sensor Logger",
+    category: "automation",
+    status: "complete",
+    tagline:
+      "A fixed-rate acquisition loop that timestamps every sample, survives intermittent sensor failures without losing a row, and writes a CSV you can audit afterwards.",
+    date: "2026-08-17",
+    thumbnail: "/projects/python-sensor-logger/sensor_log_dark.png",
+    thumbnailAlt:
+      "Two-panel plot of a 5-second acquisition run at 20 Hz, with six read failures marked on the logged trace",
+    stack: ["Python 3.8+", "Matplotlib", "CSV", "Fixed-rate acquisition"],
+    links: [
+      {
+        label: "GitHub Repo",
+        url: "https://github.com/felipeboubee/python-sensor-logger",
+      },
+    ],
+    problem:
+      "A data logger has two jobs that pull against each other. It has to sample on a schedule, and it has to keep sampling when the sensor misbehaves. The scheduling half is where drift creeps in: sleeping a flat 50 ms per iteration adds every read, every write and every scheduling hiccup onto the period, so the run falls behind its own clock and the timestamps stop meaning what they claim to mean. The failure half is worse, because the obvious responses to a bad read all damage the record in ways that are hard to see later.",
+    approach:
+      "Two pieces, kept apart. The loop in logger.py advances an absolute deadline instead of sleeping a fixed interval, so time spent inside a read is absorbed by a correspondingly shorter sleep. reader.py wraps the raw sensor call, so a read that raises, returns None or returns a non-finite value comes back as a sentinel, and readings outside the rated range are clamped. The loop itself has no error handling and does not need any. A simulated rangefinder with Gaussian noise and a 5% failure rate stands in for hardware, so the whole pipeline runs anywhere.",
+    tradeoffs: [
+      {
+        title: "What to write when a read fails",
+        body: "Four options, and three of them quietly damage the record. The sentinel is 99.0 m, which sits outside the [0, 10] m valid range and is deliberately never passed through the clamp that constrains real readings. Every substituted sample is therefore recoverable from the CSV alone with distance == 99.0, which is exactly how the plotting code finds the markers for both panels.",
+        table: {
+          headers: ["Option", "What it does to the record"],
+          rows: [
+            [
+              "Drop the sample",
+              "Shortens the run and breaks the assumption that row n is 50 ms after row n−1",
+            ],
+            [
+              "Hold the last good value",
+              "A dead sensor reads as a stationary target, which you discover long afterwards if at all",
+            ],
+            [
+              "Write NaN",
+              "Defensible, but it propagates through arithmetic and gets silently dropped downstream",
+            ],
+            [
+              "Sentinel outside the range",
+              "Keeps the sample count, stays identifiable, and cannot be read back as a measurement",
+            ],
+          ],
+        },
+      },
+      {
+        title: "An absolute deadline instead of a flat sleep",
+        body: "Sleeping dt per iteration is one line shorter and accumulates every delay in the loop. Advancing next_t by dt and sleeping until that deadline means a slow read shortens the next sleep rather than pushing the whole schedule back. The committed run shows it working: one OS scheduling hiccup at t = 2.15 s produced a 69 ms interval, the next interval came back at 31 ms, and the two sum to exactly 100 ms. Net drift, zero. A flat sleep would have kept those 19 ms, and every timestamp after that point would have been late by at least that much.",
+      },
+    ],
+    sections: [
+      {
+        title: "Measured performance",
+        body: "From the run committed in results/, at a 5.0 s duration and a 20 Hz target rate against a 2.0 m simulated target:",
+        table: {
+          headers: ["Metric", "Result"],
+          rows: [
+            ["Samples recorded", "100 over a 4.95 s span"],
+            ["Mean sample rate", "20.00 Hz; mean and median interval both 50.0 ms"],
+            ["Interval accuracy", "97 of 99 intervals landed at exactly 50 ms"],
+            ["Worst case", "one 69 ms interval at t = 2.15 s, then a 31 ms interval"],
+            ["Net drift from that hiccup", "0 ms; the two intervals sum to 100 ms"],
+            ["Read failures", "6 of 100 samples, against a 5.0% injected rate"],
+            ["Failures that lost a sample", "0; every one produced a timestamped row"],
+            ["Range clamps applied", "0"],
+            ["Valid readings", "94, mean 1.945 m and σ 1.015 m against a 2.0 m target"],
+          ],
+        },
+        image: {
+          src: "/projects/python-sensor-logger/sensor_log_dark.png",
+          alt: "Two-panel plot of a 5-second run at 20 Hz. The top panel shows the log as written, with six read failures spiking to the 99 m sentinel and marked with red crosses. The bottom panel shows the same run restricted to the measured range, where the substituted samples appear as red vertical rules.",
+        },
+      },
+      {
+        title: "Module layout",
+        table: {
+          headers: ["Module", "Responsibility"],
+          rows: [
+            ["sensor.py", "Simulated rangefinder: Gaussian noise, 5% read failures"],
+            ["reader.py", "Wraps a read with error handling, validation and clamping"],
+            ["logger.py", "Fixed-rate acquisition loop; returns (time, value) rows"],
+            ["recorder.py", "CSV write and read-back"],
+            ["plotting.py", "Two-panel time series with substituted samples marked"],
+            ["config.py", "Rate, duration, valid range, sentinel"],
+          ],
+        },
+      },
+      {
+        title: "A bug worth recording",
+        body: "The first version of run() accepted a duration argument and never used it. It paced itself correctly at 20 Hz and ran until interrupted, accumulating nothing and returning nothing, so it produced no data while doing so. The fix anchors a start time t0, bounds the loop on elapsed time, accumulates rows and returns them. t0 and next_t stay separate on purpose: t0 decides when the run stops, next_t decides when the next sample is due. Merging them would put back the drift that the 69 ms recovery above shows the loop absorbing.",
+      },
+      {
+        title: "Known limitations",
+        bullets: [
+          "The timestamp marks when the read was issued, not when the value arrived. That is fine while reads are fast relative to the 50 ms period, and it would need revisiting for a sensor with a long or variable response time.",
+          "If a read overruns the period, the loop stays behind by that much instead of skipping a sample to catch up. The record stays contiguous and carries a small permanent offset.",
+          "The sensor is simulated. Gaussian noise and a uniform 5% failure rate are a convenient model, not a measured one. Real rangefinders tend to fail in correlated bursts, which this would not reproduce.",
+        ],
+      },
+    ],
+    nextTime: [
+      "Timestamp the arrival as well as the request, so a slow sensor shows up in the record instead of disappearing into the period.",
+      "Replace the uniform failure rate with bursts, which is closer to how a flaky bus behaves, and check the sentinel handling still leaves a readable record.",
+      "Write to a rolling file with a size bound. A 5-second run hides every problem that only appears over hours.",
+      "Point it at a real sensor over serial or I2C and find out how much of the 50 ms budget the read actually costs.",
+    ],
+    images: [
+      {
+        src: "/projects/python-sensor-logger/sensor_log_dark.png",
+        alt: "Two-panel plot of a 5-second acquisition run at 20 Hz, showing six read failures as spikes to the 99 m sentinel above and as marked gaps in the measured range below",
+      },
+    ],
+    videos: [],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────
+  {
     slug: "plc-sorting-conveyor-cell",
     title: "Automated Sorting & Conveyor Cell",
     category: "automation",
