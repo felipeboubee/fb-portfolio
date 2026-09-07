@@ -2,6 +2,7 @@ import {
   formatProjectDate,
   getAllProjects,
   getProjectBySlug,
+  projectCategories,
   type ProjectSection,
 } from "@/data/projects";
 import { notFound } from "next/navigation";
@@ -193,7 +194,9 @@ export default async function ProjectDetail({
             marginBottom: "1.25rem",
           }}
         >
-          <CategoryTag category={project.category} />
+          {projectCategories(project).map((c) => (
+            <CategoryTag key={c} category={c} />
+          ))}
           <StatusBadge status={project.status} />
           {project.date && (
             <time

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Project } from "@/data/projects";
 import { CategoryTag, StatusBadge, ThumbnailPlaceholder } from "./ProjectMeta";
+import { projectCategories } from "@/data/projects";
 
 export default function ProjectCard({ project }: { project: Project }) {
   return (
@@ -50,7 +51,9 @@ export default function ProjectCard({ project }: { project: Project }) {
             alignItems: "center",
           }}
         >
-          <CategoryTag category={project.category} size="small" />
+          {projectCategories(project).map((c) => (
+            <CategoryTag key={c} category={c} size="small" />
+          ))}
           <StatusBadge status={project.status} />
         </div>
 

@@ -53,7 +53,15 @@ export interface ProjectSection {
 export interface Project {
   slug: string;
   title: string;
+  /** Primary discipline. Drives the card's lead tag and the placeholder colour. */
   category: ProjectCategory;
+  /**
+   * Extra disciplines this project also belongs to. Most projects have none.
+   * A project appears under every one of its categories in the filter, and
+   * renders a tag for each. Use `projectCategories()` rather than reading
+   * `category` directly anywhere membership matters.
+   */
+  secondaryCategories?: ProjectCategory[];
   status: ProjectStatus;
   /** One sentence, for cards and the page subtitle. */
   tagline: string;
@@ -291,6 +299,142 @@ const projects: Project[] = [
       {
         src: "/projects/python-sensor-logger/sensor_log_dark.png",
         alt: "Two-panel plot of a 5-second acquisition run at 20 Hz, showing six read failures as spikes to the 99 m sentinel above and as marked gaps in the measured range below",
+      },
+    ],
+    videos: [],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────
+  {
+    slug: "python-obstacle-detection-system",
+    title: "Obstacle Detection System",
+    category: "robotics",
+    secondaryCategories: ["automation"],
+    status: "complete",
+    tagline:
+      "A noisy distance stream turned into a stable CLEAR / WARNING / DANGER verdict, using a median filter and a state machine whose enter and exit thresholds differ.",
+    date: "2026-09-07",
+    thumbnail:
+      "/projects/python-obstacle-detection-system/approach-classified-dark.png",
+    thumbnailAlt:
+      "A noisy approach from 2.0 m to 0.2 m with the classification drawn as coloured bands, crossing into WARNING then DANGER without flicker",
+    stack: [
+      "Python 3.8+",
+      "Matplotlib",
+      "Median filtering",
+      "Hysteresis",
+      "State machine",
+    ],
+    links: [
+      {
+        label: "GitHub Repo",
+        url: "https://github.com/felipeboubee/python-obstacle-detection-system",
+      },
+    ],
+    problem:
+      "A distance sensor parked near a 0.9 m threshold reads 0.91, 0.89, 0.90, 0.88. Test each of those against a single threshold and the verdict changes every few samples, so a robot driving on that output lurches, stops, and lurches again. Outliers are not the difficulty here: a median filter removes those, and this signal has none. The difficulty is that the signal is sitting on the line, which is the one case where a classifier with a single threshold per boundary has no stable answer available to it.",
+    approach:
+      "Cleaning and deciding live in separate modules. filtering.py rejects None, nan and inf, clips into the sensor's rated range, and takes the median of the last five samples; it accepts a list of numbers and returns a number, with no state and no verdicts anywhere in it. detector.py owns the state and four thresholds, and every branch tests the current state alongside the distance, so entering a state and leaving it happen at different distances. The pipeline reads: validate, clip, median of the last 5, state machine, verdict.",
+    tradeoffs: [
+      {
+        title: "Two thresholds per boundary instead of one",
+        body: "Once the detector is in WARNING it does not leave until the distance exceeds 1.1 m, and 0.016 m of noise does not carry a signal 0.2 m. The gap is sized against whatever survives the filter: a median over five samples of a signal carrying 0.03 m of raw noise wobbles by about 0.016 m, which puts its three-sigma spread near 0.05 m. A 0.20 m margin is roughly four times that, so noise alone cannot push a reading back across a boundary it has just crossed.",
+        table: {
+          headers: [
+            "Boundary",
+            "Enter below",
+            "Exit above",
+            "Margin",
+            "Fraction of the enter threshold",
+          ],
+          rows: [
+            ["WARNING", "0.9 m", "1.1 m", "0.20 m", "22%"],
+            ["DANGER", "0.4 m", "0.6 m", "0.20 m", "50%"],
+          ],
+        },
+        image: {
+          src: "/projects/python-obstacle-detection-system/hysteresis-before-after-dark.png",
+          alt: "Two panels over the same hovering signal. The top panel, classified with a single 0.9 m threshold, is striped with alternating CLEAR and WARNING bands from 16 transitions. The bottom panel, with separate 0.9 m enter and 1.1 m exit thresholds, is one unbroken WARNING band after a single transition.",
+        },
+      },
+      {
+        title: "What the margin costs",
+        body: "The margin is not free, and it is paid on the way out. At 0.20 m the detector holds DANGER until the obstacle is 0.6 m away, so a robot that has already stopped stays stopped through an extra 0.2 m of retreat. Both boundaries use the same margin here because these scenarios put the same noise at every distance. A real range sensor is usually noisier far away than close up, which would argue for a wider margin at WARNING than at DANGER.",
+      },
+      {
+        title: "Median rather than mean, and validation before clipping",
+        body: "Over [1.5, 1.5, 90.0, 1.5, 1.5] the median is 1.5 and the mean is about 19. The window is five samples and odd on purpose, so the median is an actual reading rather than the average of two, and four neighbours outvote one outlier. Validation runs before clipping for a related reason: clipping nan returns nan, so an invalid reading would otherwise enter the window looking like a real one.",
+      },
+    ],
+    sections: [
+      {
+        title: "Verifying it",
+        body: "One run proves little when the input is random, so verify_stability.py repeats every scenario across 200 seeds and reports the transition count as a range. The expected counts are known in advance: the spike run has to produce 0, because one outlier should never reach the classifier; hovering has to produce 1, settling into WARNING and staying there; the approach has to produce 2, one per boundary crossed.",
+        table: {
+          headers: ["Scenario", "Min", "Max", "Mean"],
+          rows: [
+            ["spike", "0", "0", "0.0"],
+            ["hovering", "1", "1", "1.0"],
+            ["approach", "2", "2", "2.0"],
+            ["hovering, one threshold", "6", "32", "18.8"],
+          ],
+        },
+      },
+      {
+        title: "Why it has to be a state machine",
+        body: "A chain of if statements on the distance alone cannot express this, because the same reading means different things depending on where the detector already was. At 1.0 m the verdict is WARNING if the detector was already in WARNING, and CLEAR if it was CLEAR. Testing the state first also caps each pass at one transition, so a single reading cannot skip a level.",
+      },
+      {
+        title: "The same mechanism, filed under a different name",
+        body: "This was built as a robotics project: a robot needs to know how close an obstacle is, and it needs the answer to hold still. The mechanism underneath it is not specific to robots. Separate enter and exit thresholds on a noisy process variable are what an industrial alarm calls deadband, and the reason is identical. A level or temperature alarm whose setpoint the signal happens to sit on will annunciate, clear, and annunciate again until an operator stops trusting it. The numbers here transfer directly: size the gap against the noise that survives the filter, then accept the delay it adds on the way out. The planned PID and SCADA build on this site specifies exactly that behaviour for its process alarms, and this is the working version of it.",
+      },
+      {
+        title: "Module layout",
+        table: {
+          headers: ["File", "Responsibility"],
+          rows: [
+            [
+              "filtering.py",
+              "Cleaning. Rejects None, nan and inf, clips to range, takes the median. Pure and stateless",
+            ],
+            [
+              "detector.py",
+              "The decision. ObstacleDetector holds the state and the four thresholds",
+            ],
+            [
+              "scenarios.py",
+              "Test data: an approach, a stream with one absurd spike, a signal hovering on a threshold",
+            ],
+            ["config.py", "Every tunable value in one place"],
+            ["main.py", "Wires the pieces together and counts state changes"],
+            ["plot_results.py", "Renders the two figures above"],
+            ["verify_stability.py", "Re-runs each scenario over many seeds"],
+          ],
+        },
+      },
+      {
+        title: "Known limitations",
+        bullets: [
+          "Both boundaries use the same 0.20 m margin. These scenarios justify that and a real sensor would not, because range noise usually grows with distance.",
+          "The scenarios are generated, not recorded. Gaussian noise on a clean ramp is a convenient model; a real rangefinder returns correlated errors, dropouts and surface-dependent bias.",
+          "Leaving DANGER returns the detector to WARNING rather than re-evaluating both boundaries at once, so a fast retreat still steps through WARNING on its way to CLEAR. That falls out of capping each pass at one transition.",
+        ],
+      },
+    ],
+    nextTime: [
+      "Scale the margin with distance, since range noise usually grows with it, and re-run the seed sweep to check the transition counts still hold.",
+      "Feed it recorded sensor data instead of generated scenarios, which is where correlated noise and dropouts would show up.",
+      "Add a minimum dwell time per state, so a genuine fast approach cannot cross both boundaries inside two samples.",
+      "Wire the verdict into the line follower's control loop, so it gates motion instead of being printed.",
+    ],
+    images: [
+      {
+        src: "/projects/python-obstacle-detection-system/approach-classified-dark.png",
+        alt: "A noisy 2.0 m to 0.2 m approach with the classification drawn as coloured bands. Two transitions: CLEAR to WARNING at the 0.9 m line, WARNING to DANGER at the 0.4 m line. Neither boundary flickers.",
+      },
+      {
+        src: "/projects/python-obstacle-detection-system/hysteresis-before-after-dark.png",
+        alt: "The same hovering signal classified two ways: one threshold gives 16 transitions and a striped plot, separate enter and exit thresholds give a single transition and one unbroken band.",
       },
     ],
     videos: [],
@@ -808,9 +952,21 @@ export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);
 }
 
+/**
+ * Every discipline a project belongs to, primary first, in canonical order
+ * after that. Deduplicated, so listing the primary again in
+ * `secondaryCategories` is harmless.
+ */
+export function projectCategories(project: Project): ProjectCategory[] {
+  const extra = CATEGORY_ORDER.filter(
+    (c) => c !== project.category && project.secondaryCategories?.includes(c)
+  );
+  return [project.category, ...extra];
+}
+
 /** Categories that actually have projects, in canonical order. */
 export function getUsedCategories(): ProjectCategory[] {
-  const used = new Set(projects.map((p) => p.category));
+  const used = new Set(projects.flatMap(projectCategories));
   return CATEGORY_ORDER.filter((c) => used.has(c));
 }
 
