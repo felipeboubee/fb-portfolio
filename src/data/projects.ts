@@ -53,7 +53,15 @@ export interface ProjectSection {
 export interface Project {
   slug: string;
   title: string;
+  /** Primary discipline. Drives the card's lead tag and the placeholder colour. */
   category: ProjectCategory;
+  /**
+   * Extra disciplines this project also belongs to. Most projects have none.
+   * A project appears under every one of its categories in the filter, and
+   * renders a tag for each. Use `projectCategories()` rather than reading
+   * `category` directly anywhere membership matters.
+   */
+  secondaryCategories?: ProjectCategory[];
   status: ProjectStatus;
   /** One sentence, for cards and the page subtitle. */
   tagline: string;
@@ -300,7 +308,8 @@ const projects: Project[] = [
   {
     slug: "python-obstacle-detection-system",
     title: "Obstacle Detection System",
-    category: "automation",
+    category: "robotics",
+    secondaryCategories: ["automation"],
     status: "complete",
     tagline:
       "A noisy distance stream turned into a stable CLEAR / WARNING / DANGER verdict, using a median filter and a state machine whose enter and exit thresholds differ.",
@@ -374,6 +383,10 @@ const projects: Project[] = [
       {
         title: "Why it has to be a state machine",
         body: "A chain of if statements on the distance alone cannot express this, because the same reading means different things depending on where the detector already was. At 1.0 m the verdict is WARNING if the detector was already in WARNING, and CLEAR if it was CLEAR. Testing the state first also caps each pass at one transition, so a single reading cannot skip a level.",
+      },
+      {
+        title: "The same mechanism, filed under a different name",
+        body: "This was built as a robotics project: a robot needs to know how close an obstacle is, and it needs the answer to hold still. The mechanism underneath it is not specific to robots. Separate enter and exit thresholds on a noisy process variable are what an industrial alarm calls deadband, and the reason is identical. A level or temperature alarm whose setpoint the signal happens to sit on will annunciate, clear, and annunciate again until an operator stops trusting it. The numbers here transfer directly: size the gap against the noise that survives the filter, then accept the delay it adds on the way out. The planned PID and SCADA build on this site specifies exactly that behaviour for its process alarms, and this is the working version of it.",
       },
       {
         title: "Module layout",
@@ -939,9 +952,21 @@ export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);
 }
 
+/**
+ * Every discipline a project belongs to, primary first, in canonical order
+ * after that. Deduplicated, so listing the primary again in
+ * `secondaryCategories` is harmless.
+ */
+export function projectCategories(project: Project): ProjectCategory[] {
+  const extra = CATEGORY_ORDER.filter(
+    (c) => c !== project.category && project.secondaryCategories?.includes(c)
+  );
+  return [project.category, ...extra];
+}
+
 /** Categories that actually have projects, in canonical order. */
 export function getUsedCategories(): ProjectCategory[] {
-  const used = new Set(projects.map((p) => p.category));
+  const used = new Set(projects.flatMap(projectCategories));
   return CATEGORY_ORDER.filter((c) => used.has(c));
 }
 

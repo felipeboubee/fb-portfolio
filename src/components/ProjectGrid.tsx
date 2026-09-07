@@ -5,6 +5,7 @@ import {
   CATEGORY_LABELS,
   type Project,
   type ProjectCategory,
+  projectCategories,
 } from "@/data/projects";
 import ProjectCard from "./ProjectCard";
 
@@ -23,7 +24,7 @@ export default function ProjectGrid({
     () =>
       filter === "all"
         ? projects
-        : projects.filter((p) => p.category === filter),
+        : projects.filter((p) => projectCategories(p).includes(filter)),
     [projects, filter]
   );
 
@@ -32,7 +33,7 @@ export default function ProjectGrid({
     ...categories.map((c) => ({
       value: c as Filter,
       label: CATEGORY_LABELS[c],
-      count: projects.filter((p) => p.category === c).length,
+      count: projects.filter((p) => projectCategories(p).includes(c)).length,
     })),
   ];
 
