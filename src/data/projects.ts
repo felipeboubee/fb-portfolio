@@ -63,6 +63,11 @@ export interface Project {
    */
   secondaryCategories?: ProjectCategory[];
   status: ProjectStatus;
+  /**
+   * Keeps the entry off the site entirely: no card, no filter count, no page.
+   * It stays in this file as a build spec until it is worth showing.
+   */
+  hidden?: boolean;
   /** One sentence, for cards and the page subtitle. */
   tagline: string;
   /** Completion date, "YYYY-MM-DD". Omit for work that isn't finished. */
@@ -170,7 +175,7 @@ const projects: Project[] = [
     nextTime: [
       "Bound the wheel speeds so the motors saturate, and re-run the Kp = 20 case. I expect the failure mode to change from spinning-in-place to a slower limit cycle.",
       "Add a discrete IR sensor array model with quantization and noise, so the controller has to infer the offset instead of being handed it.",
-      "Port the same loop onto the ESP32 in the networked motor controller build, so the simulated tuning can be checked against a real plant.",
+      "Run the same loop on an ESP32 driving a DC motor, so the simulated tuning can be checked against a real plant.",
     ],
     images: [
       {
@@ -633,6 +638,7 @@ const projects: Project[] = [
     title: "Networked Embedded Motor Controller",
     category: "electronics",
     status: "planned",
+    hidden: true,
     tagline:
       "An ESP32 running a PID speed loop on a DC motor with encoder feedback, exposed simultaneously as a Modbus TCP device and a micro-ROS node.",
     thumbnail: "",
@@ -711,6 +717,7 @@ const projects: Project[] = [
     title: "Integrated Robot Work-Cell",
     category: "robotics",
     status: "planned",
+    hidden: true,
     tagline:
       "A PLC-orchestrated cell where a robot arm performs pick-and-place on a conveyor, handshaking over OPC-UA and supervised by SCADA.",
     thumbnail: "",
@@ -801,6 +808,7 @@ const projects: Project[] = [
     title: "SLAM Mapping Robot",
     category: "robotics",
     status: "planned",
+    hidden: true,
     tagline:
       "A mobile robot that drives an unknown Gazebo world, builds a 2D occupancy grid while estimating its own pose, and saves the map for later navigation.",
     thumbnail: "",
@@ -858,6 +866,7 @@ const projects: Project[] = [
     title: "Soft-Core CPU in Verilog",
     category: "digital-design",
     status: "planned",
+    hidden: true,
     tagline:
       "A small but real processor in Verilog (fetch, decode, execute, register file and ALU) running a machine-code program in simulation, with a waveform to prove it.",
     thumbnail: "",
@@ -927,6 +936,9 @@ const projects: Project[] = [
   },
 ];
 
+// Every helper below reads this list, so a hidden entry never reaches a page.
+const published = projects.filter((p) => !p.hidden);
+
 const STATUS_RANK: Record<ProjectStatus, number> = {
   complete: 0,
   "in-progress": 1,
@@ -938,7 +950,7 @@ const STATUS_RANK: Record<ProjectStatus, number> = {
  * Copies before sorting — sorting in place would mutate module state.
  */
 export function getAllProjects(): Project[] {
-  return [...projects].sort((a, b) => {
+  return [...published].sort((a, b) => {
     const byStatus = STATUS_RANK[a.status] - STATUS_RANK[b.status];
     if (byStatus !== 0) return byStatus;
     if (a.date && b.date) return b.date.localeCompare(a.date);
@@ -949,7 +961,7 @@ export function getAllProjects(): Project[] {
 }
 
 export function getProjectBySlug(slug: string): Project | undefined {
-  return projects.find((p) => p.slug === slug);
+  return published.find((p) => p.slug === slug);
 }
 
 /**
@@ -966,7 +978,7 @@ export function projectCategories(project: Project): ProjectCategory[] {
 
 /** Categories that actually have projects, in canonical order. */
 export function getUsedCategories(): ProjectCategory[] {
-  const used = new Set(projects.flatMap(projectCategories));
+  const used = new Set(published.flatMap(projectCategories));
   return CATEGORY_ORDER.filter((c) => used.has(c));
 }
 

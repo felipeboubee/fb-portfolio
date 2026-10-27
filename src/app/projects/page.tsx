@@ -4,7 +4,7 @@ import ProjectGrid from "@/components/ProjectGrid";
 export const metadata = {
   title: "Projects | Felipe Boubee",
   description:
-    "Automation, robotics, embedded and digital-design builds, each written up as an engineering decision record.",
+    "Automation, controls and robotics builds, each written up as an engineering decision record.",
 };
 
 export default function ProjectsPage() {
@@ -40,10 +40,10 @@ export default function ProjectsPage() {
             maxWidth: 680,
           }}
         >
-          Automation and controls, robotics, embedded electronics and digital
-          design. Each one is written up as an engineering decision record: the
-          problem, the approach, the trade-offs that had real alternatives, and
-          what a second pass would change. Status is labelled on every card.
+          Automation, controls and robotics. Each one is written up as an
+          engineering decision record: the problem, the approach, the trade-offs
+          that had real alternatives, and what a second pass would change.
+          Status is labelled on every card.
         </p>
 
         <ProjectGrid projects={projects} categories={categories} />
