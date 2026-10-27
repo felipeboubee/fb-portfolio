@@ -17,7 +17,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Felipe Boubee | Portfolio",
   description:
-    "Electronic Engineering student at Universidad de Palermo. Automation and controls, robotics and embedded builds, written up as engineering decision records.",
+    "Electronic Engineering student at Universidad de Palermo. Automation, controls and robotics builds, written up as engineering decision records.",
 };
 
 export default function RootLayout({
